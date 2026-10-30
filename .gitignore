@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+env/
+venv/
+ENV/
+
+# Data directories (keep structure with .gitkeep, ignore runtime files)
+data/uploads/*
+!data/uploads/.gitkeep
+data/frames/*
+!data/frames/.gitkeep
+data/reports/*
+!data/reports/.gitkeep
+
+# Operating system / IDE files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/
+.idea/

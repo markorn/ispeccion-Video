@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VisiónForense IA — Transcripción y Análisis Objetivo de Video/Audio</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <!-- Barra Superior -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+        </svg>
+      </div>
+      <div>
+        <h1>VisiónForense IA <span class="badge-local">100% LOCAL</span></h1>
+        <p class="subtitle">Transcripción Faster-Whisper + Agente de Visión Objetivo (Cero Inferencias / Cero Juicios de Valor)</p>
+      </div>
+    </div>
+
+    <div class="system-pills" id="systemPills">
+      <span class="sys-pill" id="pillGpu" title="Hardware de aceleración detectado">GPU: Verificando...</span>
+      <span class="sys-pill" id="pillWhisper" title="Motor local de transcripción de audio">Whisper: Activo</span>
+      <span class="sys-pill" id="pillOllama" title="Motor de visión multimodal Ollama">Visión: Verificando...</span>
+      <button class="btn-outline-sm" id="btnOpenDiag" type="button">Configurar Modelos</button>
+    </div>
+  </header>
+
+  <!-- Contenedor Principal -->
+  <main class="workspace-grid">
+    <!-- Columna Izquierda: Configuración y Carga -->
+    <aside class="sidebar-panel">
+      <section class="card">
+        <div class="card-header">
+          <h2>1. Archivo de Video o Audio</h2>
+          <button type="button" class="btn-demo" id="btnRunDemo" title="Genera un video CCTV con voz en español y lo analiza">
+            ▶ Cargar Demo CCTV
+          </button>
+        </div>
+
+        <form id="analyzeForm">
+          <label class="dropzone" id="dropzone" for="fileInput">
+            <input type="file" id="fileInput" accept=".mp4,.avi,.mov,.mkv,.webm,.mp3,.wav,.m4a,.ogg,.flac" hidden />
+            <div class="dropzone-content">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              <span class="drop-title" id="selectedFileName">Arrastra un video o audio aquí o haz clic</span>
+              <span class="drop-hint">Soporta MP4, AVI, MOV, MKV, WEBM, MP3, WAV, M4A, OGG</span>
+            </div>
+          </label>
+
+          <div class="form-group">
+            <label for="searchQuery">
+              2. Situación o elemento específico a identificar
+              <span class="label-optional">(Vehículo, robo, violencia, objetos...)</span>
+            </label>
+            <textarea
+              id="searchQuery"
+              rows="3"
+              placeholder="Ej: Vehículo sedán color rojo, camioneta blanca, o personas en contacto físico / sustracción de objetos..."
+            >Vehículo color rojo o acción de personas junto al vehículo</textarea>
+
+            <div class="preset-chips">
+              <span class="chip-label">Plantillas rápidas:</span>
+              <button type="button" class="chip" data-query="Vehículo color rojo o automóvil estacionándose en el carril central">🚗 Vehículo específico</button>
+              <button type="button" class="chip" data-query="Acción de personas: posible sustracción de objetos, robo o toma rápida de pertenencias">👜 Acción de robo / sustracción</button>
+              <button type="button" class="chip" data-query="Acción de violencia física, forcejeo, contacto brusco o desplazamiento rápido entre personas">⚠️ Violencia / forcejeo</button>
+              <button type="button" class="chip" data-query="">📋 Solo resumen objetivo general</button>
+            </div>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="languageSelect">Idioma / Variante Fonética</label>
+              <select id="languageSelect">
+                <option value="es_mx" selected>🇲🇽 Español (México) — Léxico Local</option>
+                <option value="es">🇪🇸 Español General</option>
+                <option value="auto">🌐 Detección Automática</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="computeDevice">Aceleración Hardware</label>
+              <select id="computeDevice">
+                <option value="cuda" selected>⚡ GPU NVIDIA CUDA (GTX 1060)</option>
+                <option value="auto">🔄 Automático (CUDA / CPU)</option>
+                <option value="cpu">🖥️ Solo CPU</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="whisperModel">Modelo Audio (Whisper)</label>
+              <select id="whisperModel">
+                <option value="small" selected>small (Recomendado Español MX)</option>
+                <option value="medium">medium (Alta precisión Español MX)</option>
+                <option value="large-v3-turbo">large-v3-turbo (Máxima precisión)</option>
+                <option value="base">base (Rápido)</option>
+                <option value="tiny">tiny (Ultra rápido)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="visionModel">Modelo Visión (Ollama)</label>
+              <select id="visionModel">
+                <option value="qwen2.5vl:3b" selected>qwen2.5vl:3b (Recomendado 6GB)</option>
+                <option value="qwen2.5vl:7b">qwen2.5vl:7b</option>
+                <option value="moondream">moondream (Ligero 1.7B)</option>
+                <option value="llava:7b">llava:7b</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="customVocab">
+              Vocabulario / Contexto Local (Opcional — Español MX)
+            </label>
+            <input
+              type="search"
+              id="customVocab"
+              placeholder="Ej: Av. Insurgentes, Tlalpan, Nissan Tsuru, placas, colonia Centro..."
+            />
+          </div>
+
+          <div class="form-group" style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+            <input type="checkbox" id="enhanceSpeech" checked style="width:auto;accent-color:#3b82f6" />
+            <label for="enhanceSpeech" style="margin:0;font-weight:500;font-size:0.78rem;cursor:pointer">
+              🔊 Mejora acústica de voz FFmpeg (Filtrar ruido de calle/tráfico y normalizar volumen)
+            </label>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="sampleInterval">Intervalo Fotogramas (s)</label>
+              <input type="number" id="sampleInterval" value="1.5" min="0.5" max="15" step="0.5" />
+            </div>
+            <div class="form-group">
+              <label for="maxFrames">Máx. Fotogramas</label>
+              <input type="number" id="maxFrames" value="20" min="4" max="60" step="2" />
+            </div>
+          </div>
+
+          <button type="submit" class="btn-primary" id="btnSubmitAnalysis">
+            Analizar Archivo y Generar Reporte Objetivo
+          </button>
+        </form>
+
+        <!-- Barra de Progreso en Tiempo Real -->
+        <div class="progress-box hidden" id="progressBox">
+          <div class="progress-header">
+            <span id="progressMessage">Iniciando procesamiento...</span>
+            <span id="progressPercent">0%</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Historial de Análisis Recientes -->
+      <section class="card">
+        <div class="card-header">
+          <h2>Historial de Análisis</h2>
+          <button type="button" class="btn-text" id="btnRefreshJobs">Actualizar</button>
+        </div>
+        <div class="history-list" id="historyList">
+          <p class="empty-muted">Aún no hay análisis previos.</p>
+        </div>
+      </section>
+    </aside>
+
+    <!-- Columna Derecha: Reproductor, Línea de Tiempo, Resumen Objetivo y Evidencias -->
+    <section class="main-panel">
+      <!-- Barra superior del reporte activo -->
+      <div class="report-toolbar card" id="reportToolbar">
+        <div class="report-meta-summary">
+          <h2 id="activeReportTitle">Sin archivo cargado — Carga un archivo o ejecuta el Demo CCTV</h2>
+          <p id="activeReportSubtitle" class="muted-sm">
+            El agente describirá únicamente los hechos observables en pantalla y transcribirá el audio con marcas de tiempo exactas.
+          </p>
+        </div>
+        <div class="export-buttons hidden" id="exportButtons">
+          <button type="button" class="btn-export" id="btnReanalyzeCurrent" style="cursor:pointer;border-color:#10b981;color:#34d399">
+            🔄 Re-analizar Archivo
+          </button>
+          <a id="btnExportPdf" class="btn-export pdf" href="#" target="_blank">⬇ Exportar PDF Pericial</a>
+          <a id="btnExportMd" class="btn-export md" href="#" target="_blank">⬇ Markdown (.md)</a>
+          <a id="btnExportJson" class="btn-export json" href="#" target="_blank">⬇ JSON</a>
+        </div>
+      </div>
+
+      <!-- Reproductor Multimedia y Línea de Tiempo de Eventos -->
+      <div class="player-timeline-card card">
+        <div class="media-stage" id="mediaStage">
+          <video id="videoPlayer" controls preload="metadata" class="hidden"></video>
+          <audio id="audioPlayer" controls preload="metadata" class="hidden"></audio>
+          <div id="mediaPlaceholder" class="media-placeholder">
+            <p>Selecciona un video/audio o haz clic en <strong>"▶ Cargar Demo CCTV"</strong> para visualizar el reproductor interactivo y la línea de tiempo.</p>
+          </div>
+        </div>
+
+        <!-- Línea de Tiempo Interactiva con Marcadores de Situaciones -->
+        <div class="timeline-container" id="timelineContainer">
+          <div class="timeline-header">
+            <span class="timeline-title">Línea de Tiempo de Eventos y Fotogramas Muestreados</span>
+            <div class="timeline-legend">
+              <span class="legend-item"><i class="dot dot-high"></i> Situación Detectada (Alta)</span>
+              <span class="legend-item"><i class="dot dot-med"></i> Situación Detectada (Media)</span>
+              <span class="legend-item"><i class="dot dot-frame"></i> Fotograma Analizado</span>
+            </div>
+          </div>
+          <div class="timeline-bar" id="timelineBar" title="Haz clic en cualquier marcador para saltar al segundo exacto">
+            <div class="timeline-playhead" id="timelinePlayhead" style="left: 0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pestañas de Resultados -->
+      <div class="tabs-card card">
+        <nav class="tabs-nav">
+          <button type="button" class="tab-btn active" data-tab="tabSummary">
+            1. Resumen Objetivo (Cero Inferencias)
+          </button>
+          <button type="button" class="tab-btn" data-tab="tabSituations">
+            2. Situaciones Detectadas y Capturas <span class="tab-counter" id="countSituations">0</span>
+          </button>
+          <button type="button" class="tab-btn" data-tab="tabTranscript">
+            3. Transcripción con Timestamps <span class="tab-counter" id="countSegments">0</span>
+          </button>
+          <button type="button" class="tab-btn" data-tab="tabFrames">
+            4. Bitácora de Fotogramas <span class="tab-counter" id="countFrames">0</span>
+          </button>
+        </nav>
+
+        <!-- Pestaña 1: Resumen Objetivo -->
+        <div class="tab-content active" id="tabSummary">
+          <div class="neutrality-banner">
+            <strong>Protocolo de Neutralidad Pericial Activo:</strong>
+            Este resumen expone exclusivamente lo que se observa en los fotogramas y lo que se registra en la pista de audio, sin emitir juicios de valor ni inferir intenciones.
+          </div>
+
+          <div class="summary-columns">
+            <div class="summary-block">
+              <h3>Descripción Cronológica de lo Observado en Video</h3>
+              <div class="summary-text" id="visualSummaryText">
+                Aún no se ha ejecutado el análisis.
+              </div>
+            </div>
+            <div class="summary-block">
+              <h3>Síntesis Objetiva de la Pista de Audio</h3>
+              <div class="summary-text" id="audioSummaryText">
+                Aún no se ha ejecutado el análisis.
+              </div>
+
+              <h3 class="mt-16">Garantías de Auditoría Anti-Inferencias</h3>
+              <ul class="audit-list" id="auditNotesList"></ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pestaña 2: Situaciones Detectadas y Capturas -->
+        <div class="tab-content" id="tabSituations">
+          <div id="situationsContainer" class="situations-grid">
+            <p class="empty-muted">Ejecuta un análisis para ver los intervalos y capturas donde ocurre la situación buscada.</p>
+          </div>
+        </div>
+
+        <!-- Pestaña 3: Transcripción con Timestamps -->
+        <div class="tab-content" id="tabTranscript">
+          <div class="transcript-toolbar">
+            <input
+              type="search"
+              id="transcriptSearch"
+              placeholder="Buscar palabra o frase en la transcripción..."
+            />
+            <span class="muted-sm">Haz clic en cualquier segmento para reproducir ese instante exacto.</span>
+          </div>
+          <div id="transcriptList" class="transcript-list">
+            <p class="empty-muted">Sin segmentos transcritos aún.</p>
+          </div>
+        </div>
+
+        <!-- Pestaña 4: Todos los Fotogramas Analizados -->
+        <div class="tab-content" id="tabFrames">
+          <div id="allFramesGrid" class="frames-grid">
+            <p class="empty-muted">Sin fotogramas extraídos aún.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal de Diagnóstico / Configuración de Modelos Locales -->
+  <div class="modal-backdrop hidden" id="diagModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>Estado de Motores de IA Local (Faster-Whisper + Ollama)</h3>
+        <button type="button" class="btn-close" id="btnCloseDiag">✕</button>
+      </div>
+      <div class="modal-body" id="diagModalBody">
+        <p>Cargando diagnóstico del sistema...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Vista Ampliada de Fotograma de Evidencia -->
+  <div class="modal-backdrop hidden" id="imageModal">
+    <div class="modal-box modal-image-box">
+      <div class="modal-header">
+        <h3 id="imageModalTitle">Captura de Evidencia</h3>
+        <button type="button" class="btn-close" id="btnCloseImageModal">✕</button>
+      </div>
+      <div class="modal-body center-body">
+        <img id="imageModalImg" src="" alt="Fotograma de evidencia" />
+        <p id="imageModalCaption" class="mt-12"></p>
+      </div>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
+
